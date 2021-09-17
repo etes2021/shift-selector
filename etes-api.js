@@ -88,6 +88,15 @@ async function checkAuthCached(req, res, next) {
 	next();
 }
 
+async function getValuesForCol(col) {
+	const auth = await getAuth();
+	const sheets = google.sheets({ version: 'v4', auth });
+	return (await sheets.spreadsheets.values.get({
+		spreadsheetId: userSheetId,
+		range: `Formularantworten 1!${col}2:${col}500`,
+	})).data.values.map(r => r[0]);
+}
+
 async function checkAuth(req, res, next) {
 	const [key] = ((req.get('Authorization') || '').split(' ')[1] || '').split(':');
 	if (!(key)) {
@@ -99,16 +108,10 @@ async function checkAuth(req, res, next) {
 	const idCol = getColLetters(labels.indexOf('Reg ID'));
 	const keyCol = getColLetters(labels.indexOf('Key'));
 	const nameCol = getColLetters(labels.indexOf('First name'));
-	async function valuesForCol(col) {
-		return (await sheets.spreadsheets.values.get({
-			spreadsheetId: userSheetId,
-			range: `Formularantworten 1!${col}2:${col}500`,
-		})).data.values.map(r => r[0]);
-	}
 	const [keys, ids, names] = await Promise.all([
-		valuesForCol(keyCol),
-		valuesForCol(idCol),
-		valuesForCol(nameCol),
+		getValuesForCol(keyCol),
+		getValuesForCol(idCol),
+		getValuesForCol(nameCol),
 	]);
 	const knownCreds = Object.fromEntries(keys.map((key, i) => [key, {key, id: ids[i], name: names[i]}]));
 	if (!knownCreds[key]) {
@@ -140,6 +143,30 @@ app.get('/shiftsSheetId', (req, res) => {
 
 app.get('/users/me', checkAuth, async (req, res) => {
 	res.send({username: req.creds.id, firstName: req.creds.name});
+});
+
+app.post('/sessions', async (req, res) => {
+	const auth = await getAuth();
+	const sheets = google.sheets({ version: 'v4', auth });
+	const labels = await getLabels();
+	const idCol = getColLetters(labels.indexOf('Reg ID'));
+	const keyCol = getColLetters(labels.indexOf('Key'));
+	const pwdCol = getColLetters(labels.indexOf('PWD'));
+	const [keys, ids, pwds] = await Promise.all([
+		getValuesForCol(keyCol),
+		getValuesForCol(idCol),
+		getValuesForCol(pwdCol),
+	]);
+	const idx = ids.indexOf(req.body.username);
+	if (idx === -1) {
+		log.d('unknown user ' + req.body.username);
+		return res.status(401).send();
+	}
+	if (pwds[idx] !== req.body.password) {
+		log.d('wrong password');
+		return res.status(401).send();
+	}
+	res.send({token: keys[idx]});
 });
 
 app.post('/shifts/:shiftId/claims', checkAuth, async (req, res) => {
