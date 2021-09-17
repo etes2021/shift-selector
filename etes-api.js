@@ -175,15 +175,22 @@ app.post('/shifts/:shiftId/claims', checkAuth, async (req, res) => {
 	const username = req.creds.id;
 	const sheets = google.sheets({version: 'v4', auth: await getAuth()});
 	try {
-		const scheduleColData = (await sheets.spreadsheets.values.get({
+		const scheduleColData = (await sheets.spreadsheets.get({
 			spreadsheetId: scheduleSheetId,
-			range: `schedule!${shiftId}`,
-		})).data.values;
-		log.d('scheduleColData', scheduleColData);
-		if (scheduleColData) {
+			includeGridData: true,
+			ranges: `schedule!${shiftId}`,
+		}));
+		// log.d('scheduleColData', scheduleColData.data.sheets[0]);
+		const cellData = scheduleColData.data.sheets[0].data[0].rowData[0].values[0];
+		log.d('scheduleColData.data', cellData);
+		if (cellData.effectiveValue) {
 			return res.status(400).send('Shift already claimed');
 		}
+		if (cellData.effectiveFormat.backgroundColor.red !== 0.7137255) {
+			return res.status(400).send('Not a shift');
+		}
 	} catch (e) {
+		log.d('error retrieving cell info', e);
 		return res.status(400).send('unable to check shift; probably invalid ID');
 	}
 	// The shift is free ; claim it
