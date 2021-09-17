@@ -1,6 +1,7 @@
 const fs = require('fs');
 const {promisify} = require('util');
 const readline = require('readline');
+const process = require('process');
 
 const cors = require('cors');
 const express = require('express');
@@ -12,7 +13,7 @@ const log = require('./log');
 const {getAuth} = require('./google-auth');
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 const userSheetId = '1DT2QYRYiGPS0MewiEcMTjtGRcwKOzUCafLaCO7jITlo';
 const scheduleSheetId = '1ndNpWrRW30yL_ZjlzhKEsTNCuOR5AdnTFulOQ_JfJCw';
 
