@@ -1,9 +1,10 @@
 {
-  "name": "@etes2021/shift-selector",
+  "name": "@etes2021/etes-api",
   "version": "1.0.0",
-  "description": "Tool for selecting volunteering shifts",
-  "main": "shift-selector.js",
+  "description": "The ETES API",
+  "main": "shift-api.js",
   "scripts": {
+    "start": "node etes-api.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -16,9 +17,6 @@
     "url": "https://github.com/etes2021/shift-selector/issues"
   },
   "homepage": "https://github.com/etes2021/shift-selector#readme",
-  "devDependencies": {
-    "vue": "^2.6.14"
-  },
   "dependencies": {
     "body-parser": "^1.19.0",
     "cors": "^2.8.5",
