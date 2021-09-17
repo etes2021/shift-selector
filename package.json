@@ -1,0 +1,30 @@
+{
+  "name": "@etes2021/shift-selector",
+  "version": "1.0.0",
+  "description": "Tool for selecting volunteering shifts",
+  "main": "shift-selector.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/etes2021/shift-selector.git"
+  },
+  "author": "Daniel Reus",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/etes2021/shift-selector/issues"
+  },
+  "homepage": "https://github.com/etes2021/shift-selector#readme",
+  "devDependencies": {
+    "vue": "^2.6.14"
+  },
+  "dependencies": {
+    "body-parser": "^1.19.0",
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "googleapis": "^85.0.0",
+    "request": "^2.88.2",
+    "request-promise-native": "^1.0.9"
+  }
+}
