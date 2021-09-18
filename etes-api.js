@@ -3,6 +3,7 @@ const {promisify} = require('util');
 const readline = require('readline');
 const process = require('process');
 
+const deepcompare = require('deep-compare');
 const cors = require('cors');
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -169,6 +170,12 @@ app.post('/sessions', async (req, res) => {
 	res.send({token: keys[idx]});
 });
 
+const selectableColors = [
+	{red: 1, green: 0.8509804, blue: 0.4},
+	{red: 0.7137255, green: 0.84313726, blue: 0.65882355},
+	{red: 0.91764706, green: 0.6, blue: 0.6},
+];
+
 app.post('/shifts/:shiftId/claims', checkAuth, async (req, res) => {
 	const {shiftId} = req.params;
 	validateShiftId(shiftId, res);
@@ -182,11 +189,11 @@ app.post('/shifts/:shiftId/claims', checkAuth, async (req, res) => {
 		}));
 		// log.d('scheduleColData', scheduleColData.data.sheets[0]);
 		const cellData = scheduleColData.data.sheets[0].data[0].rowData[0].values[0];
-		log.d('scheduleColData.data', cellData);
+		log.d('scheduleColData.backgroundColor', cellData.effectiveFormat.backgroundColor);
 		if (cellData.effectiveValue) {
 			return res.status(400).send('Shift already claimed');
 		}
-		if (cellData.effectiveFormat.backgroundColor.red !== 0.7137255) {
+		if (!selectableColors.find(c => deepcompare(c, cellData.effectiveFormat.backgroundColor))) {
 			return res.status(400).send('Not a shift');
 		}
 	} catch (e) {
