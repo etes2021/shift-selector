@@ -16,7 +16,8 @@ const {getAuth} = require('./google-auth');
 const app = express();
 const port = process.env.PORT || 3000;
 const userSheetId = '1DT2QYRYiGPS0MewiEcMTjtGRcwKOzUCafLaCO7jITlo';
-const scheduleSheetId = '1ndNpWrRW30yL_ZjlzhKEsTNCuOR5AdnTFulOQ_JfJCw';
+const scheduleSheetId = '1WYsPnHke3RSYaQ7IdzacMFoTKfK-eJb9xXazXHRT76I';
+const sheetPageName = 'VolunteerInput';
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -138,8 +139,8 @@ function checkGoogleResult(result, action) {
 	}
 }
 
-app.get('/shiftsSheetId', (req, res) => {
-	res.send(scheduleSheetId);
+app.get('/shiftsSheetInfo', (req, res) => {
+	res.send({id: scheduleSheetId, offsetLeft: 3, offsetTop: 3, name: sheetPageName});
 });
 
 app.get('/users/me', checkAuth, async (req, res) => {
@@ -171,9 +172,10 @@ app.post('/sessions', async (req, res) => {
 });
 
 const selectableColors = [
-	{red: 1, green: 0.8509804, blue: 0.4},
-	{red: 0.7137255, green: 0.84313726, blue: 0.65882355},
-	{red: 0.91764706, green: 0.6, blue: 0.6},
+	{red: 1, green: 0.5019608}, //orange
+	{red: 1, green: 1 }, //yellow
+	{red: 1 }, //red
+	{green: 1 }, //green
 ];
 
 app.post('/shifts/:shiftId/claims', checkAuth, async (req, res) => {
@@ -185,7 +187,7 @@ app.post('/shifts/:shiftId/claims', checkAuth, async (req, res) => {
 		const scheduleColData = (await sheets.spreadsheets.get({
 			spreadsheetId: scheduleSheetId,
 			includeGridData: true,
-			ranges: `schedule!${shiftId}`,
+			ranges: `${sheetPageName}!${shiftId}`,
 		}));
 		// log.d('scheduleColData', scheduleColData.data.sheets[0]);
 		const cellData = scheduleColData.data.sheets[0].data[0].rowData[0].values[0];
@@ -203,7 +205,7 @@ app.post('/shifts/:shiftId/claims', checkAuth, async (req, res) => {
 	// The shift is free ; claim it
 	const appendResult = await sheets.spreadsheets.values.update({
 		spreadsheetId: scheduleSheetId,
-		range: `schedule!${shiftId}:${shiftId}`,
+		range: `${sheetPageName}!${shiftId}:${shiftId}`,
 		valueInputOption: "USER_ENTERED",
 		resource: {
 			values: [[username]],
@@ -221,7 +223,7 @@ app.delete('/shifts/:shiftId/claims', checkAuth, async (req, res) => {
 	try {
 		const scheduleColData = (await sheets.spreadsheets.values.get({
 			spreadsheetId: scheduleSheetId,
-			range: `schedule!${shiftId}`,
+			range: `${sheetPageName}!${shiftId}`,
 		})).data.values;
 		if (scheduleColData[0][0] !== username) {
 			return res.status(400).send('Shift not yours');
@@ -232,7 +234,7 @@ app.delete('/shifts/:shiftId/claims', checkAuth, async (req, res) => {
 	// The shift is ours ; free it
 	const appendResult = await sheets.spreadsheets.values.update({
 		spreadsheetId: scheduleSheetId,
-		range: `schedule!${shiftId}:${shiftId}`,
+		range: `${sheetPageName}!${shiftId}:${shiftId}`,
 		valueInputOption: "USER_ENTERED",
 		resource: {
 			values: [['']],
