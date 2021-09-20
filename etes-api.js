@@ -191,7 +191,7 @@ app.post('/shifts/:shiftId/claims', checkAuth, async (req, res) => {
 		}));
 		// log.d('scheduleColData', scheduleColData.data.sheets[0]);
 		const cellData = scheduleColData.data.sheets[0].data[0].rowData[0].values[0];
-		log.d('scheduleColData.backgroundColor', cellData.effectiveFormat.backgroundColor);
+		// log.d('scheduleColData.backgroundColor', cellData.effectiveFormat.backgroundColor);
 		if (cellData.effectiveValue) {
 			return res.status(400).send('Shift already claimed');
 		}
@@ -212,6 +212,7 @@ app.post('/shifts/:shiftId/claims', checkAuth, async (req, res) => {
 		},
 	});
 	checkGoogleResult(appendResult, 'changing value');
+	log.i(`user ${username} claimed ${shiftId}`);
 	res.send();
 });
 
@@ -241,6 +242,7 @@ app.delete('/shifts/:shiftId/claims', checkAuth, async (req, res) => {
 		},
 	});
 	checkGoogleResult(appendResult, 'changing value');
+	log.i(`user ${username} unclaimed ${shiftId}`);
 	res.send();
 });
 
