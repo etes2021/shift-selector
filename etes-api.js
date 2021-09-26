@@ -17,7 +17,10 @@ const app = express();
 const port = process.env.PORT || 3000;
 const userSheetId = '1DT2QYRYiGPS0MewiEcMTjtGRcwKOzUCafLaCO7jITlo';
 const scheduleSheetId = '1WYsPnHke3RSYaQ7IdzacMFoTKfK-eJb9xXazXHRT76I';
+const userSheetPageName = 'Formularantworten 1';
 const sheetPageName = 'VolunteerInput';
+const offsetLeft = 3;
+const offsetTop = 3;
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -36,7 +39,11 @@ function getColLetters(column) {
 		block = Math.floor(block / totalAlphabets) - 1;
 	}
 	return a1Notation.join("");
-};
+}
+
+function getCellCode(col, row) {
+	return `${getColLetters(col)}${row + 1}`;
+}
 
 let labels;
 async function getLabels() {
@@ -140,7 +147,7 @@ function checkGoogleResult(result, action) {
 }
 
 app.get('/shiftsSheetInfo', (req, res) => {
-	res.send({id: scheduleSheetId, offsetLeft: 3, offsetTop: 3, name: sheetPageName});
+	res.send({id: scheduleSheetId, offsetLeft, offsetTop, name: sheetPageName});
 });
 
 app.get('/users/me', checkAuth, async (req, res) => {
@@ -213,6 +220,7 @@ app.post('/shifts/:shiftId/claims', checkAuth, async (req, res) => {
 	});
 	checkGoogleResult(appendResult, 'changing value');
 	log.i(`user ${username} claimed ${shiftId}`);
+	updateNumberOfShifts(req, sheets, username);
 	res.send();
 });
 
@@ -243,9 +251,60 @@ app.delete('/shifts/:shiftId/claims', checkAuth, async (req, res) => {
 	});
 	checkGoogleResult(appendResult, 'changing value');
 	log.i(`user ${username} unclaimed ${shiftId}`);
+	updateNumberOfShifts(req, sheets, username);
 	res.send();
 });
+
+async function updateNumberOfShifts(req, sheets, username) {
+	try {
+		const scheduleData = (await sheets.spreadsheets.values.get({
+			spreadsheetId: scheduleSheetId,
+			range: `${sheetPageName}!$a1:zz99`,
+		})).data.values;
+		const shiftsOwned = [];
+		scheduleData.forEach((row, rowIdx) => {
+			row.forEach((col, colIdx) => {
+				if (col === username) {
+					shiftsOwned.push(getCellCode(colIdx, rowIdx));
+				}
+			});
+		});
+		const shiftsCount = shiftsOwned.length;
+
+		const shiftsCell = getCellCode((await getLabels()).indexOf('Shifts'), req.creds.rowIndex);
+		log.d(`user ${username} shiftsCount ${shiftsCount} shiftsCell ${shiftsCell}`);
+		const appendResult = await sheets.spreadsheets.values.update({
+			spreadsheetId: userSheetId,
+			range: `${userSheetPageName}!${shiftsCell}:${shiftsCell}`,
+			valueInputOption: "USER_ENTERED",
+			resource: {
+				values: [[shiftsCount]],
+			},
+		});
+
+	} catch (e) {
+		log.w('unable to get shifts count', e);
+		return;
+	}
+
+}
 
 app.listen(port, () => {
 	console.log(`Shift selector API running at http://localhost:${port}`);
 });
+
+async function updateAllCounts() {
+	const sheets = google.sheets({version: 'v4', auth: await getAuth()});
+	const labels = await getLabels();
+	const idCol = getColLetters(labels.indexOf('Reg ID'));
+	log.d('idCol', idCol);
+	const ids = await getValuesForCol(idCol);
+	for (let index = 0; index < ids.length ; ++index) {
+		const id = ids[index];
+		await (new Promise(r => setTimeout(r, 1000)));
+		updateNumberOfShifts({creds: {rowIndex: index + 1}}, sheets, id);
+	}
+}
+
+getAuth();
+// updateAllCounts();
