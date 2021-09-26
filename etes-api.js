@@ -266,6 +266,7 @@ app.delete('/shifts/:shiftId/claims', checkAuth, async (req, res) => {
 			return res.status(400).send('Shift not yours');
 		}
 	} catch (e) {
+		log.w('unable to check shift', e);
 		return res.status(400).send('unable to check shift; probably invalid ID');
 	}
 	// The shift is ours ; free it
