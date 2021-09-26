@@ -106,6 +106,25 @@ async function getValuesForCol(col) {
 	})).data.values.map(r => r[0]);
 }
 
+async function getUsers(sheets) {
+	const authSheet = (await sheets.spreadsheets.values.get({
+		spreadsheetId: userSheetId,
+		range: `Formularantworten 1!$A1:$CZ500`,
+	})).data.values;
+	const labels = authSheet.shift();
+	const knownCreds = Object.fromEntries(authSheet.map((row, i) => [row[labels.indexOf('Key')], {
+		rowIndex: i + 1,
+		key: row[labels.indexOf('Key')],
+		id: row[labels.indexOf('Reg ID')],
+		firstName: row[labels.indexOf('First name')],
+		lastName: row[labels.indexOf('Last name')],
+		name: `${row[labels.indexOf('First name')]} ${row[labels.indexOf('Last name')]}`,
+		isCaptain: !!row[labels.indexOf('Teamcaptain')],
+		isCanceled: !!row[labels.indexOf('Canceled')],
+	}]));
+	return knownCreds;
+}
+
 async function checkAuth(req, res, next) {
 	const [key] = ((req.get('Authorization') || '').split(' ')[1] || '').split(':');
 	if (!(key)) {
@@ -113,19 +132,12 @@ async function checkAuth(req, res, next) {
 	}
 	const auth = await getAuth();
 	const sheets = google.sheets({ version: 'v4', auth });
-	const labels = await getLabels();
-	const idCol = getColLetters(labels.indexOf('Reg ID'));
-	const keyCol = getColLetters(labels.indexOf('Key'));
-	const nameCol = getColLetters(labels.indexOf('First name'));
-	const [keys, ids, names] = await Promise.all([
-		getValuesForCol(keyCol),
-		getValuesForCol(idCol),
-		getValuesForCol(nameCol),
-	]);
-	const knownCreds = Object.fromEntries(keys.map((key, i) => [key, {key, id: ids[i], name: names[i]}]));
+	const knownCreds = await getUsers(sheets);
+
 	if (!knownCreds[key]) {
 		return res.status(401).send('unknown key');
 	}
+	req.knownCreds = knownCreds;
 	req.creds = knownCreds[key];
 	next();
 }
@@ -151,8 +163,24 @@ app.get('/shiftsSheetInfo', (req, res) => {
 });
 
 app.get('/users/me', checkAuth, async (req, res) => {
-	res.send({username: req.creds.id, firstName: req.creds.name});
+	res.send({
+		teamId: req.creds.id.split('-')[0],
+		username: req.creds.id,
+		firstName: req.creds.firstName,
+		lastName: req.creds.lastName,
+		isCaptain: req.creds.isCaptain
+	});
 });
+
+app.get('/teams/:teamId', checkAuth, async (req, res) => {
+	if (!req.creds.isCaptain) {
+		return res.status(401).send();
+	}
+	const members = Object.values(req.knownCreds).filter(member => member.id.startsWith(`${req.params.teamId}-`));
+	log.d('members', members);
+	res.send({members: members.map(m => ({id: m.id, firstName: m.firstName, lastName: m.lastName, name: m.name}))});
+});
+
 
 app.post('/sessions', async (req, res) => {
 	const auth = await getAuth();
