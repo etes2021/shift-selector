@@ -177,7 +177,6 @@ app.get('/teams/:teamId', checkAuth, async (req, res) => {
 		return res.status(401).send();
 	}
 	const members = Object.values(req.knownCreds).filter(member => member.id.startsWith(`${req.params.teamId}-`));
-	log.d('members', members);
 	res.send({members: members.map(m => ({id: m.id, firstName: m.firstName, lastName: m.lastName, name: m.name}))});
 });
 
