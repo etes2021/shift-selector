@@ -21,7 +21,15 @@ const userSheetPageName = 'Formularantworten 1';
 const sheetPageName = 'VolunteerInput';
 const offsetLeft = 3;
 const offsetTop = 3;
-
+const orgas = [
+	'DUS-1000', // Sabrina
+	'DUS-1003', // Oscar
+	'CLA-1007', // Daniel G
+	'AMS-1012', // Daniel R
+	'BER-1021', // Marta
+	'DUS-1061', // Daniel N
+	'UTR-1104', // Berit
+];
 app.use(cors());
 app.use(bodyParser.json());
 
@@ -120,6 +128,8 @@ async function getUsers(sheets) {
 	const isCaptainRow = labels.indexOf('Teamcaptain');
 	const isCanceledRow = labels.indexOf('Canceled');
 	const isAdjudicatorRow = labels.indexOf('Adjudicator');
+	const orgaMap = Object.fromEntries(orgas.map(e => [e, true]));
+
 	const knownCreds = Object.fromEntries(authSheet.map((row, i) => [row[labels.indexOf('Key')], {
 		rowIndex: i + 1,
 		key: row[keyRow],
@@ -131,6 +141,7 @@ async function getUsers(sheets) {
 		isCaptain: !!row[isCaptainRow],
 		isCanceled: !!row[isCanceledRow],
 		isAdjudicator: !!row[isAdjudicatorRow],
+		isOrga: orgaMap[row[idRow]],
 	}]));
 	return knownCreds;
 }
@@ -180,6 +191,7 @@ app.get('/users/me', checkAuth, async (req, res) => {
 		lastName: req.creds.lastName,
 		isCaptain: req.creds.isCaptain,
 		isAdjudicator: req.creds.isAdjudicator,
+		isOrga: req.creds.isOrga,
 	});
 });
 
@@ -195,13 +207,30 @@ function projectMember(user) {
 }
 
 app.get('/teams/:teamId', checkAuth, async (req, res) => {
-	if (!req.creds.isCaptain) {
+	if (!(req.creds.isCaptain || req.creds.isOrga)) {
 		return res.status(401).send();
 	}
 	const members = Object.values(req.knownCreds).filter(member => member.id.startsWith(`${req.params.teamId}-`));
 	res.send({members: members.filter(m => !m.isCancelled).map(projectMember)});
 });
 
+app.get('/teams', checkAuth, async (req, res) => {
+	if (!req.creds.isOrga) {
+		return res.status(401).send();
+	}
+	const teams = {};
+	for (const user of Object.values(req.knownCreds).filter(m => !m.isCancelled)) {
+		if (!teams[user.team]) {
+			teams[user.team] = {
+				name: user.team,
+				id: user.team.split('-')[0],
+				members: [],
+			};
+		}
+		teams[user.team].members.push(projectMember(user));
+	}
+	res.send(Object.values(teams));
+});
 
 app.post('/sessions', async (req, res) => {
 	const auth = await getAuth();
