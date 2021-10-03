@@ -112,15 +112,25 @@ async function getUsers(sheets) {
 		range: `Formularantworten 1!$A1:$CZ500`,
 	})).data.values;
 	const labels = authSheet.shift();
+	const keyRow = labels.indexOf('Key');
+	const idRow = labels.indexOf('Reg ID');
+	const firstNameRow = labels.indexOf('First name');
+	const lastNameRow = labels.indexOf('Last name');
+	const teamRow = labels.indexOf('My team is');
+	const isCaptainRow = labels.indexOf('Teamcaptain');
+	const isCanceledRow = labels.indexOf('Canceled');
+	const isAdjudicatorRow = labels.indexOf('Adjudicator');
 	const knownCreds = Object.fromEntries(authSheet.map((row, i) => [row[labels.indexOf('Key')], {
 		rowIndex: i + 1,
-		key: row[labels.indexOf('Key')],
-		id: row[labels.indexOf('Reg ID')],
-		firstName: row[labels.indexOf('First name')],
-		lastName: row[labels.indexOf('Last name')],
-		name: `${row[labels.indexOf('First name')]} ${row[labels.indexOf('Last name')]}`,
-		isCaptain: !!row[labels.indexOf('Teamcaptain')],
-		isCanceled: !!row[labels.indexOf('Canceled')],
+		key: row[keyRow],
+		id: row[idRow],
+		firstName: row[firstNameRow],
+		lastName: row[lastNameRow],
+		name: `${row[firstNameRow]} ${row[lastNameRow]}`,
+		team: row[teamRow],
+		isCaptain: !!row[isCaptainRow],
+		isCanceled: !!row[isCanceledRow],
+		isAdjudicator: !!row[isAdjudicatorRow],
 	}]));
 	return knownCreds;
 }
@@ -168,16 +178,28 @@ app.get('/users/me', checkAuth, async (req, res) => {
 		username: req.creds.id,
 		firstName: req.creds.firstName,
 		lastName: req.creds.lastName,
-		isCaptain: req.creds.isCaptain
+		isCaptain: req.creds.isCaptain,
+		isAdjudicator: req.creds.isAdjudicator,
 	});
 });
+
+function projectMember(user) {
+	return {
+		id: user.id,
+		firstName: user.firstName,
+		lastName: user.lastName,
+		name: user.name,
+		isAdjudicator: user.isAdjudicator,
+		isCancelled: user.isCancelled,
+	};
+}
 
 app.get('/teams/:teamId', checkAuth, async (req, res) => {
 	if (!req.creds.isCaptain) {
 		return res.status(401).send();
 	}
 	const members = Object.values(req.knownCreds).filter(member => member.id.startsWith(`${req.params.teamId}-`));
-	res.send({members: members.map(m => ({id: m.id, firstName: m.firstName, lastName: m.lastName, name: m.name}))});
+	res.send({members: members.filter(m => !m.isCancelled).map(projectMember)});
 });
 
 
