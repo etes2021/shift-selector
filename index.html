@@ -1,0 +1,15 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="/shift-selector/favicon.ico"><title>ETES Shift Selector</title><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@latest/css/materialdesignicons.min.css"><script src="https://apis.google.com/js/api.js"></script><script>window.gapiLoaded = new Promise((resolve, reject) => {
+        function start() {
+          gapi.client.init({
+            'apiKey': 'AIzaSyBzt2Htvznv_I-qSAo7PEDe-C69nfCuo08',
+            'discoveryDocs':  ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
+            'scope': 'https://www.googleapis.com/auth/spreadsheets.readonly',
+          }).then(function() {
+            resolve(gapi);
+          }, function(reason) {
+            console.log('Error loading gapi', reason);
+            reject(reason);
+          });
+        };
+        gapi.load('client', start);
+      });</script><link href="/shift-selector/css/app.c7a36fc7.css" rel="preload" as="style"><link href="/shift-selector/css/chunk-vendors.b7e2d990.css" rel="preload" as="style"><link href="/shift-selector/js/app.038c2da8.js" rel="preload" as="script"><link href="/shift-selector/js/chunk-vendors.5747df3f.js" rel="preload" as="script"><link href="/shift-selector/css/chunk-vendors.b7e2d990.css" rel="stylesheet"><link href="/shift-selector/css/app.c7a36fc7.css" rel="stylesheet"></head><body><noscript><strong>We're sorry but @etes2021/shift-selector-view doesn't work properly without JavaScript enabled. Please enable it to continue.</strong></noscript><div id="app"></div><script src="/shift-selector/js/chunk-vendors.5747df3f.js"></script><script src="/shift-selector/js/app.038c2da8.js"></script></body></html>
